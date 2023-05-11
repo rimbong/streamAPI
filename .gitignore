@@ -1,4 +1,6 @@
 /.metadata/
+/.settings/
+.project
 Servers/
 /**/.classpath
 .vscode/
