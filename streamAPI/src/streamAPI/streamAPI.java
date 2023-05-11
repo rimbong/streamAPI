@@ -1,5 +1,6 @@
 package streamAPI;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -32,11 +33,13 @@ import java.util.stream.Stream;
         중요) 최종 처리가 시작되기 전까지 중간처리는 지연(lazy)되며, 최종 처리가 시작되면 중간 스트림에서 처리를 시작한다.
     - stream은 한번 사용하면 재사용이 불가능
  */
+
 /* 1급 객체
     - 변수나 데이타에 할당 할 수 있어야 한다.
     - 객체의 인자로 넘길 수 있어야 한다.
     - 객체의 리턴값으로 리턴 할수 있어야 한다.
  */
+
 /* 함수형 인터페이스(Functional Interface)
     함수를 1급 객체처럼 다룰 수 있게 해주는 어노테이션으로 (@FunctionalInterface), 
     인터페이스에 선언하여 단 하나의 추상 메소드만을 갖도록 제한하는 역할을 한다. 
@@ -48,7 +51,6 @@ import java.util.stream.Stream;
         Function<T, R> : T라는 타입을 받아서 R이라는 타입을 반환하는 추상 메소드
         Predicate<T>   : T 타입을 받아서 boolean을 리턴하는 함수 인터페이스
 */
-
 
 /* Method Reference
     함수형 인터페이스를 람다식이 아닌 일반 메소드를 참조시켜 선언하는 방법
@@ -71,9 +73,22 @@ import java.util.stream.Stream;
     4. (String s) -> System.out.println(s)           ==>    System.out::println 
 */
 
+/* Optional
+    Java8에서는 Optional<T> 클래스를 사용해 NPE를 방지할 수 있도록 도와준다. 
+    Optional<T>는 null이 올 수 있는 값을 감싸는 Wrapper 클래스로, 참조하더라도 NPE가 발생하지 않도록 도와준다. 
+
+    사용법 및 가이드
+    - Optional 변수에 Null을 할당하지 말아라
+    - 값이 없을 때 Optional.orElseX()로 기본 값을 반환하라
+    - 단순히 값을 얻으려는 목적으로만 Optional을 사용하지 마라
+    - 생성자, 수정자, 메소드 파라미터 등으로 Optional을 넘기지 마라
+    - Collection의 경우 Optional이 아닌 빈 Collection을 사용하라
+    - 반환 타입으로만 사용하라
+*/
+
 public class streamAPI {
     public static void main(String[] args) {
-        test7();
+        test8();
     }
     
     public static void test1() {        
@@ -217,6 +232,36 @@ public class streamAPI {
         Optional<String> anyElement2 = productList.stream().map(Product::getName).parallel()
                 .filter(s -> s.startsWith("b")).findAny();        
         System.out.println("findAny2: " + anyElement2.get());
+    }
+    public static void test8() {
+        List<Product> productList = Arrays.asList(
+            new Product(23, "potatoes"),
+            new Product(17, "banana"),
+            new Product(14, "orange"),
+            new Product(13, "lemon"),
+            new Product(23, "bread"),
+            new Product(13, "sugar"));        
+
+        
+        List<String> names = productList.stream().map((t) ->t.getName()).collect(Collectors.toList());
+        List<String> names2 = null;
+        // 전통적인 null 체크
+        List<String> nameList = names != null ? names : new ArrayList<>();        
+        System.out.println("nameList : " + nameList);
+
+        // Java8 이후
+        // 참고) orElse는 null이 아니어도 무조건 불리지만, orElseGet은 null 때만 불린다. 따라서 서버의 부하를 줄이기 위해 orElseGet 사용하자.
+        // orElse: 파라미터로 값을 받는다.
+        // orElseGet: 파라미터로 함수형 인터페이스(함수)를 받는다.
+        
+        // 아래는 예를 들기 위한것으로 단순히 값을 얻으려는 목적으로만 Optional을 사용하면 안된다.(부하문제)
+        // Optional은 반환타입으로만 사용하여야 한다.
+
+        // List<String> nameList2 = Optional.ofNullable(names)
+        //         .orElseGet(() -> new ArrayList<>());
+        List<String> nameList2 = Optional.ofNullable(names)
+                .orElse(new ArrayList<>());
+        System.out.println("nameList2 : " + nameList2);
     }
 }
 /**
