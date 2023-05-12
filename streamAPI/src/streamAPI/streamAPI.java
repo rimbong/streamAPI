@@ -22,7 +22,7 @@ import java.util.stream.Stream;
     중간 연산
         filter, map, limit, sorted
     최종 연산
-        collect, count, average, reduce, anyMatch, forEach .... 
+        collect, count, average, reduce, anyMatch, forEach, findAny .... 
 
     return type이 Stream 이라면 중간 처리 메소드이고, 
     return type이 기본타입 or Optional___ 라면 최종 처리 메소드이다.
@@ -88,7 +88,7 @@ import java.util.stream.Stream;
 
 public class streamAPI {
     public static void main(String[] args) {
-        test8();
+        test7();
     }
     
     public static void test1() {        
@@ -221,8 +221,17 @@ public class streamAPI {
         // 직렬 처리시 차이 없음 , 병렬 처리시 ,any는 순서가 아닌 가장 먼저 찾게되는걸 리턴함.
         Optional<String> firstElement = productList.stream()
                 .map(Product::getName)
-                .filter(s -> s.startsWith("b")).findFirst();
-        System.out.println("findFirst: " + firstElement.get());
+                .filter(s -> s.startsWith("t")).findFirst();
+        
+        // 아래 optional 접근 방법 2가지중 2번째 방법이 더 효율이 좋다.
+        // optional의 값의 접근 방법1
+        if(firstElement.isPresent()) {
+            System.out.println("findFirst: " + firstElement.get());
+        }
+        // optional의 값의 접근 방법2
+        System.out.println("findFirst: " + firstElement.orElseGet( ()->"" ));
+
+
 
         Optional<String> anyElement = productList.stream()
                 .map(Product::getName)
@@ -255,7 +264,7 @@ public class streamAPI {
         // orElseGet: 파라미터로 함수형 인터페이스(함수)를 받는다.
         
         // 아래는 예를 들기 위한것으로 단순히 값을 얻으려는 목적으로만 Optional을 사용하면 안된다.(부하문제)
-        // Optional은 반환타입으로만 사용하여야 한다.
+        // Optional은 반환타입으로만 사용하여야 한다. (람다 함수를 통한 반환 등)
 
         // List<String> nameList2 = Optional.ofNullable(names)
         //         .orElseGet(() -> new ArrayList<>());
