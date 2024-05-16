@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -86,9 +88,58 @@ import java.util.stream.Stream;
     - 반환 타입으로만 사용하라
 */
 
+/*  
+ * ParallelStream
+    Java8에서 등장한 Stream은 병렬 처리를 쉽게 할 수 있도록 메소드를 제공해 준다.
+    개발자가 직접 스레드 혹은 스레드풀을 생성하거나 관리할 필요 없이 parallelStream(), parallel()만 사용하면 
+    알아서 ForkJoinFramework 관리 방식을 이용하여 작업들을 분할하고, 병렬적으로 처리하게 된다.
+
+    Fork / Join Framework
+    Fork / Join Framework는 작업들을 분할 가능한 만큼 쪼개고, 쪼개진 작업들을 Work Thread를 통해 작업 후 
+    결과를 합치는 과정으로 결과를 만들어 낸다.
+    즉, 분할 정복(Divide and Conquer) 알고리즘과 흡사하며, Fork를 통해 Task를 분담하고 Join을 통해 결과를 합친다.
+    사용방법은 parallelStream() 또는 stream().parallel() 만 붙여주면 된다
+    
+    ForkJoinPool
+    ForkJoinPool을 설정하여 동시에 실행 될 수 있는 쓰레드의 개수를 제한 할 수 있다.
+
+
+    ParallelStream 사용 전 꼭 알아야 할 주의사항 
+    1. Thread Pool 공유
+     parallelStream은 내부적으로 common ForkJoinPool을 사용하여 작업을 병렬화 시킨다. 
+    별도의 설정이 없다면 하나의 Thread Pool을 모든 parallelStream이 공유하게 되고,  
+    이는 Thread Pool을 사용하는 다른 Thread에 영향을 줄 수 있으며, 반대로 영향을 받을 수 있다.
+    따라서 Thread를 반납하지 않고 계속 점유 중이라면 문제가 될 수 있다.
+    4개의 Thread 중 1, 2, 3은 사용할 수 없으며 Thread 4 한 개 만을 이용해서 모든 요청을 처리하고 있는 상황을 가정하자. 
+    이때 Thread 1, 2, 3 이 sleep과 같이 아무런 일을 하지 않으면서 점유를 하고 있다면 이는 문제가 크다.
+    만약, Thread 4까지 점유 중이게 되면 더 이상 요청은 처리되지 않고 Thread Pool Queue에 쌓이게 되며, 
+    일정시간 이상 되면 요청이 Drop 되는 현상까지 발생할 것이다. 
+    병렬 스트림은 Thread Pool을 global하게 공유하기 때문에 만약 A메서드에서 4개의 Thread를 모두 점유하면 
+    다른 병렬 스트림의 요청은 처리되지 않고 대기하게 된다.또한, blocking  I/O 가 발생하는 작업을 하게 되면 
+    Thread Pool 내부의 스레드들은 block 되며, 이때 Thread Pool을 공유하는 다른 쪽의 병렬 Stream은 스레드를 얻을 때까지 
+    계속해서 기다리게 되면서 문제가 발생한다. 
+    이 문제는 각 parallelStream마다 커스텀(new ForkJoinPool(int n))하여 독립적인 Thread Pool로 분리하여 사용하면 해결할 수 있다.
+
+
+    2. Custom Thread Pool 사용 시 Memory Leak 주의
+     ForkJoinPool customForkJoinPool = new ForkJoinPool(Runtime.getRuntime().availableProcessors());
+    별도의 스레드 풀 생성 시 정석은 실행 중인 CPU 코어 수를 기준으로 생성하는 것이다. 
+    물리적인 코어 수를 초과하여 생성할 경우, 생성은 되지만 스레드 관리 오버헤드와 스레드 간의 
+    빈번한 컨텍스트 스위칭(Context-Switching) 등의 문제로 성능 저하가 발생할 수 있다. 
+    Parallel Stream 별로 ForkJoinPool을 인스턴스화하여 사용하면 OOME(OutOfMemoryError)이 발생할 수 있다.
+    default로 사용되는 Common ForkJoinPool은 정적(static)이기 때문에 메모리 누수가 발생하지 않지만,
+    Custom 한 ForkJoinPool 객체는 참조 해제되지 않거나, GC(Garbage Collection)로 수집되지 않을 수 있다.
+    이 문제에 대한 해결 방법은 간단한데, Custom ForkJoinPool을 사용한 후 다음과 같이 스레드 풀을 명시적으로 종료하는 것이다.
+    customForkJoinPool.shutdown();
+
+    3. 정리
+    I/O를 기다리는 작업에는 적합하지 않고 (이 경우 CompletableFuture가 적합)
+    분할이 잘 이루어질 수 있는 데이터 구조 혹은 작업이 독립적이면서 CPU 사용이 높은 작업에 적합하다. 
+*/
+
 public class streamAPI {
     public static void main(String[] args) {
-        test7();
+        test10();
     }
     
     public static void test1() {        
@@ -271,6 +322,69 @@ public class streamAPI {
         List<String> nameList2 = Optional.ofNullable(names)
                 .orElse(new ArrayList<>());
         System.out.println("nameList2 : " + nameList2);
+    }
+    public static void test9() {
+        List<Product> productList = Arrays.asList(
+                new Product(23, "potatoes"),
+                new Product(17, "banana"),
+                new Product(14, "orange"),
+                new Product(13, "lemon"),
+                new Product(23, "bread"),
+                new Product(13, "sugar"));
+        
+        System.out.println("parallelStream Start");
+        productList.parallelStream().forEach( (c) -> {
+            try {
+                Thread.sleep(3000);
+                System.out.println(c.getName());
+            } catch (InterruptedException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        });
+        System.out.println("parallelStream End");
+
+        System.out.println("parallel Start");
+        productList.stream().parallel().forEach( (c) -> {
+            try {
+                Thread.sleep(3000);
+                System.out.println(c.getName());
+            } catch (InterruptedException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        });
+        System.out.println("parallel End");
+    }
+    public static void test10() {
+        List<Product> productList = Arrays.asList(
+                new Product(23, "potatoes"),
+                new Product(17, "banana"),
+                new Product(14, "orange"),
+                new Product(13, "lemon"),
+                new Product(23, "bread"),
+                new Product(13, "sugar"));
+        
+        // ForkJoinPool 설정 
+        // ForkJoinPool fj = new ForkJoinPool(Runtime.getRuntime().availableProcessors());
+        ForkJoinPool fj = new ForkJoinPool(3);
+        System.out.println("parallelStream Start");
+        try {
+            fj.submit(() -> productList.parallelStream().forEach(number -> {
+                try {
+                    Thread.sleep(3000);
+                    System.out.println(number.getName());
+                } catch (Exception e) {
+                }
+            })).get();
+        } catch (InterruptedException | ExecutionException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        // 명시적으로 종료시킴
+        fj.shutdown();
+
+        System.out.println("parallelStream End");
     }
 }
 /**
