@@ -36,10 +36,10 @@ import java.util.stream.Stream;
     - stream은 한번 사용하면 재사용이 불가능
  */
 
-/* 1급 객체
-    - 변수나 데이타에 할당 할 수 있어야 한다.
-    - 객체의 인자로 넘길 수 있어야 한다.
-    - 객체의 리턴값으로 리턴 할수 있어야 한다.
+/* 1급 객체 (함수를 데이터 다루듯이  다룰 수 있다)
+    - 변수나 데이터에 할당 할 수 있어야 한다. ( const mul = function (num) {...} )
+    - 객체의 인자로 넘길 수 있어야 한다. ( function mulNum(func, number) {return func(number);} )
+    - 객체의 리턴값으로 리턴 할수 있어야 한다. ( function add(num1) { return function (num2) { return num1 + num2;} } ) 
  */
 
 /* 함수형 인터페이스(Functional Interface)
@@ -52,6 +52,7 @@ import java.util.stream.Stream;
         Consumer<T>    : T 타입을 받아서 로직을 수행 후 반환값은 없는 함수 인터페이스
         Function<T, R> : T라는 타입을 받아서 R이라는 타입을 반환하는 추상 메소드
         Predicate<T>   : T 타입을 받아서 boolean을 리턴하는 함수 인터페이스
+        Runnable,Callable : 쓰레드 구현시 사용
 */
 
 /* Method Reference
