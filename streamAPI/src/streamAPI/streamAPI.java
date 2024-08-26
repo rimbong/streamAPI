@@ -2,11 +2,16 @@ package streamAPI;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.function.Function;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -24,7 +29,7 @@ import java.util.stream.Stream;
     중간 연산
         filter, map, limit, sorted
     최종 연산
-        collect, count, average, reduce, anyMatch, forEach, findAny .... 
+        collect, count, average, max, reduce, anyMatch, forEach, findAny .... 
 
     return type이 Stream 이라면 중간 처리 메소드이고, 
     return type이 기본타입 or Optional___ 라면 최종 처리 메소드이다.
@@ -34,6 +39,8 @@ import java.util.stream.Stream;
     - 중간 스트림이 생성될 때 요소들이 바로 처리되는 것이 아님.
         중요) 최종 처리가 시작되기 전까지 중간처리는 지연(lazy)되며, 최종 처리가 시작되면 중간 스트림에서 처리를 시작한다.
     - stream은 한번 사용하면 재사용이 불가능
+
+    단 Optional의 경우는 다름 Optional이 제공하는 메소드(map()...)는 최종 연산 없이도 실행될 수 있습니다.
  */
 
 /* 1급 객체 (함수를 데이터 다루듯이  다룰 수 있다)
@@ -136,11 +143,11 @@ import java.util.stream.Stream;
     3. 정리
     I/O를 기다리는 작업에는 적합하지 않고 (이 경우 CompletableFuture가 적합)
     분할이 잘 이루어질 수 있는 데이터 구조 혹은 작업이 독립적이면서 CPU 사용이 높은 작업에 적합하다. 
-*/
+*/	
 
 public class streamAPI {
     public static void main(String[] args) {
-        test10();
+        mapPractice4();
     }
     
     public static void test1() {        
@@ -387,7 +394,272 @@ public class streamAPI {
 
         System.out.println("parallelStream End");
     }
+
+    /* 
+    * 1. 필터링 (Filtering)
+    * 컬렉션에서 특정 조건을 만족하는 요소들만 추출하는 작업입니다.
+    */
+    public static void listPractice1() {
+        List<Integer> numbers = Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+        List<Integer> eNumbers = numbers.stream().filter((param) -> {
+            if (param % 2 ==0 ) {
+                return true;
+            }
+            return false;
+        }).collect(Collectors.toList())
+        ;
+
+        System.out.println(eNumbers);
+    }
+
+    /* 
+    * 2. 매핑 (Mapping)
+    * 컬렉션의 요소들을 변환하는 작업입니다.
+    */
+    public static void listPractice2() {
+        List<Integer> numbers = Arrays.asList(1, 2, 3, 4, 5);
+        List<Integer> rNumbers = numbers.stream().map((params) -> {
+            return params * 2;
+        }).collect(Collectors.toList());
+
+        System.out.println(rNumbers);
+    }
+
+    /* 
+     * 3. 집계 (Reducing)
+     * 컬렉션의 모든 요소를 하나로 결합하는 작업입니다.
+     */
+    public static void listPractice3() {
+        List<Integer> numbers = Arrays.asList(1, 2, 3, 4, 5);
+        int sum = numbers.stream().reduce(0,(a,b) -> {
+            return a+b;
+        });
+
+        System.out.println(sum);
+    }
+    /* 
+     * 4. 정렬 (Sorting)
+     * 컬렉션의 요소들을 정렬하는 작업입니다.
+     */
+    public static void listPractice4() {
+        List<Integer> numbers = Arrays.asList(5, 1, 4, 3, 2);
+        List<Integer> rNumbers = numbers.stream()
+                    .sorted(Comparator.reverseOrder())
+                    .collect(Collectors.toList());
+
+        System.out.println(rNumbers);
+    }
+    /* 
+     * 5. 그룹화 (Grouping)
+     * 컬렉션의 요소들을 특정 기준으로 그룹화하는 작업입니다.
+     */
+    public static void listPractice5() {
+        List<Person> people = Arrays.asList(
+            new Person("Alice", 30),
+            new Person("Bob", 25),
+            new Person("Charlie", 30)
+        );
+        
+        Map<Integer,List<Person>> pByAge = people.stream()
+                                                .collect(Collectors.groupingBy((params) -> {
+                                                    return params.age;
+                                                }));
+        System.out.println(pByAge);
+    }
+    /* 
+     * 6. 중복 제거 (Distinct)
+     * 컬렉션의 중복 요소를 제거하는 작업입니다.
+     */
+    public static void listPractice6() {
+        List<String> items = Arrays.asList("apple", "banana", "apple", "orange", "banana");
+        List<String> items2 = items.stream().distinct().collect(Collectors.toList());
+        System.out.println(items2);
+    }
+    /* 
+     * 7. 전체 매칭/아무거나 매칭 (All Match / Any Match)
+     * 컬렉션의 요소들이 특정 조건을 모두 또는 일부 만족하는지 검사하는 작업입니다.
+     */
+    public static void listPractice7() {
+        List<Integer> numbers = Arrays.asList(1, 2, 3, 4, 5);
+        boolean a = numbers.stream().allMatch((params) -> {
+            return params > 0;
+        });
+        System.out.println(a);
+        numbers = Arrays.asList(-1, 2, 3, 4, 5);
+        a = numbers.stream().anyMatch((params) -> {
+            return params > 0;
+        });
+        System.out.println(a);
+    }
+    /* 
+     * 8. 최대값/최소값 찾기 (Finding Max/Min)
+     * 컬렉션의 최대값 또는 최소값을 찾는 작업입니다.
+     */
+    public static void listPractice8() {
+        List<Integer> numbers = Arrays.asList(1, 2, 3, 4, 5);
+
+        int m = numbers.stream().max((a,b) -> {
+            return Integer.compare(a, b);
+        }).orElseGet(() -> {
+            return 0;
+        });
+        System.out.println(m);
+
+        int t = numbers.stream().mapToInt((p) -> {
+            return p;
+        }).max().orElseGet(() -> {
+            return 0;
+        });
+
+        System.out.println(t);
+    }
+
+    /* 
+     * 1. 키 또는 값 필터링
+     * Map에서 특정 조건을 만족하는 키나 값을 필터링하는 작업입니다.
+     */
+    public static void mapPractice1() {
+        Map<String, Integer> map = new HashMap<>();
+        map.put("A", 10);
+        map.put("B", 30);
+        map.put("C", 50);
+        map.put("D", 20);
+        
+        Map<String, Integer> filteredMap = map.entrySet()
+                                    .stream()
+                                    .filter((entry) -> {
+                                        return entry.getValue() >=30;
+                                    }).collect(Collectors.toMap((params) -> {
+                                        return params.getKey();
+                                    }, (params) -> {
+                                        return params.getValue();
+                                    }));
+
+    System.out.println(filteredMap); // 출력: {B=30, C=50}
+
+    }
+    /* 
+     * 2. 값 변환 (Mapping Values)
+     * Map의 값들을 다른 값으로 변환하는 작업입니다.
+     */
+    public static void mapPractice2() {
+        Map<String, Integer> map = new HashMap<>();
+        map.put("A", 10);
+        map.put("B", 30);
+        map.put("C", 50);
+        map.put("D", 20);
+        
+        // 아래는 잘못 사용 map은 스트림 요소를 변환 할 때 쓰는데 여기서 요소는 Map.Entry이며 
+        // 저런식으로 쓸 경우 map은 Integer를 반환하게 된다...
+        // Map<String, Integer> filteredMap = map.entrySet()
+        //                                     .stream()
+        //                                     .map((params) -> {
+        //                                         return params.getValue() + 10;
+        //                                     }).collect(Collectors.toMap(
+        //                                         (params) -> {
+        //                                             return params.getKey();
+        //                                         }, (params) -> {
+        //                                             return params.getValue();
+        //                                         }))
+
+        Map<String, Integer> filteredMap = map.entrySet()
+                                        .stream()
+                                        .collect(Collectors.toMap((params) -> params.getKey(), (params) -> params.getValue() + 10));
+        System.out.println(filteredMap);
+    }
+    /* 
+     * 3. Map의 키와 값을 교환
+     * Map의 키와 값을 서로 교환하는 작업입니다.
+     */
+    public static void mapPractice3() {
+        Map<String, Integer> map = new HashMap<>();
+        map.put("A", 10);
+        map.put("B", 30);
+        map.put("C", 50);
+        map.put("D", 20);
+        
+        Map<Integer,String> filteredMap = map.entrySet().stream()
+                                                .collect(Collectors.toMap((params) -> params.getValue(), (params) -> params.getKey()));
+        System.out.println(filteredMap);
+    }
+    /* 
+     * 4. Map에서 최대값 찾기
+     * Map의 값 중 최대값을 찾는 작업입니다.
+     */
+    public static void mapPractice4() {
+         Map<String, Integer> map = new HashMap<>();
+        map.put("A", 10);
+        map.put("B", 30);
+        map.put("C", 50);
+        map.put("D", 20);
+
+        int maxValue = map.values().stream()
+                                    .max((a,b) -> {
+                                        return a-b;
+                                    }).orElseGet(() -> {
+                                        return 0;
+                                    });
+
+        System.out.println(maxValue);
+    }
+    /* 
+     * 5. 키 기준으로 정렬
+     * Map을 키 기준으로 정렬하는 작업입니다.
+     */
+    public static void mapPractice5() {
+         Map<String, Integer> map = new HashMap<>();
+        map.put("A", 10);
+        map.put("B", 30);
+        map.put("C", 50);
+        map.put("D", 20);
+        
+        Map<String, Integer> filteredMap = map.entrySet().stream()
+                                            .sorted((a,b) -> {
+                                                return a.getKey().compareTo(b.getKey());
+                                            })
+                                            .collect(Collectors.toMap(
+                                                (params) -> params.getKey(), 
+                                                (params) -> params.getValue(),
+                                                (a,b) -> a,
+                                                () -> new LinkedHashMap<>()
+                                             ));
+                                     
+        System.out.println(filteredMap);
+    }
+    /* 
+     * 6. 값 기준으로 그룹화
+     * Map의 값들을 기준으로 그룹화하는 작업입니다.
+     */
+    public static void mapPractice6() {
+        Map<String, Integer> map = new HashMap<>();
+        map.put("A", 30);
+        map.put("B", 20);
+        map.put("C", 30);
+        map.put("D", 20);
+
+        Map<Integer, List<String>> groupedMap = map.entrySet().stream()
+        .collect(Collectors.groupingBy(
+            entry -> entry.getValue(),
+            Collectors.mapping(entry -> entry.getKey(), Collectors.toList())
+        ));
+    
+        System.out.println(groupedMap);
+    }
+
 }
+
+
+
+class Person {
+    String name;
+    int age;
+    Person(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+}
+
+
 /**
  * Product
  */
