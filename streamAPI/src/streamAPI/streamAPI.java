@@ -25,11 +25,27 @@ import java.util.stream.Stream;
 
 /* 구성
     스트림 생성
-        stream
+        스트림은 컬렉션, 배열, 파일, 혹은 직접 생성된 데이터 소스에서 만들어집니다.
+        주요 메서드:
+        Collection.stream(): 리스트, 셋 등에서 스트림 생성.
+        Arrays.stream(): 배열에서 스트림 생성.
+        Stream.of(): 개별 요소로 스트림 생성.
+        Stream.generate(), Stream.iterate(): 동적 스트림 생성.
+
     중간 연산
-        filter, map, limit, sorted
+        filter(): 조건에 맞는 요소만 남김.
+        map(): 요소를 변환.
+        sorted(): 정렬.
+        distinct(): 중복 제거.
+        limit(), skip(): 크기 조절.
+        
     최종 연산
         collect, count, average, max, reduce, anyMatch, forEach, findAny .... 
+        collect(): 리스트, 맵 등으로 변환.
+        forEach(): 각 요소에 작업 수행.
+        reduce(): 요소를 하나로 집계.
+        count(), max(), min(): 통계값 계산.
+        anyMatch(), allMatch(), noneMatch(): 조건 검사.
 
     return type이 Stream 이라면 중간 처리 메소드이고, 
     return type이 기본타입 or Optional___ 라면 최종 처리 메소드이다.
@@ -648,6 +664,172 @@ public class streamAPI {
 
 }
 
+public static void streamCreationExamples() {
+    // 1. 컬렉션에서 스트림 생성
+    List<String> list = Arrays.asList("apple", "banana", "cherry");
+    Stream<String> streamFromList = list.stream();
+    System.out.println("From List:");
+    streamFromList.forEach(System.out::println);
+
+    // 2. 배열에서 스트림 생성
+    String[] array = {"dog", "cat", "bird"};
+    Stream<String> streamFromArray = Arrays.stream(array);
+    System.out.println("From Array:");
+    streamFromArray.forEach(System.out::println);
+
+    // 3. 직접 요소로 스트림 생성
+    Stream<Integer> streamFromValues = Stream.of(1, 2, 3, 4, 5);
+    System.out.println("From Values:");
+    streamFromValues.forEach(System.out::println);
+
+    // 4. 무한 스트림 생성 (제한 필요)
+    Stream<Integer> infiniteStream = Stream.iterate(0, n -> n + 2).limit(5); // 0, 2, 4, 6, 8
+    System.out.println("Infinite Stream with Limit:");
+    infiniteStream.forEach(System.out::println);
+
+    // 5. 랜덤 값 스트림 생성
+    Stream<Double> randomStream = Stream.generate(Math::random).limit(3);
+    System.out.println("Random Stream:");
+    randomStream.forEach(System.out::println);
+}
+
+public static void intermediateOperationExamples() {
+    List<Integer> numbers = Arrays.asList(3, 1, 4, 1, 5, 9, 2, 6, 5);
+
+    // 1. filter: 짝수만 필터링
+    Stream<Integer> evenNumbers = numbers.stream()
+        .filter(n -> n % 2 == 0);
+    System.out.println("Even Numbers:");
+    evenNumbers.forEach(System.out::println);
+
+    // 2. map: 제곱으로 변환
+    Stream<Integer> squaredNumbers = numbers.stream()
+        .map(n -> n * n);
+    System.out.println("Squared Numbers:");
+    squaredNumbers.forEach(System.out::println);
+
+    // 3. sorted: 오름차순 정렬
+    Stream<Integer> sortedNumbers = numbers.stream()
+        .sorted();
+    System.out.println("Sorted Numbers:");
+    sortedNumbers.forEach(System.out::println);
+
+    // 4. distinct: 중복 제거
+    Stream<Integer> uniqueNumbers = numbers.stream()
+        .distinct();
+    System.out.println("Unique Numbers:");
+    uniqueNumbers.forEach(System.out::println);
+
+    // 5. limit & skip: 앞 3개만 선택, 처음 2개 건너뛰기
+    Stream<Integer> limitedNumbers = numbers.stream()
+        .skip(2)
+        .limit(3);
+    System.out.println("Limited & Skipped Numbers:");
+    limitedNumbers.forEach(System.out::println);
+
+    // 6. chaining: 여러 중간 연산 결합
+    Stream<Integer> chainedStream = numbers.stream()
+        .filter(n -> n > 3)
+        .map(n -> n * 2)
+        .sorted(Comparator.reverseOrder());
+    System.out.println("Chained Operations:");
+    chainedStream.forEach(System.out::println);
+}
+
+public static void terminalOperationExamples() {
+    List<String> fruits = Arrays.asList("apple", "banana", "cherry", "date", "elderberry");
+
+    // 1. collect: 리스트로 수집
+    List<String> upperFruits = fruits.stream()
+        .map(String::toUpperCase)
+        .collect(Collectors.toList());
+    System.out.println("Collected to List: " + upperFruits);
+
+    // 2. forEach: 출력
+    System.out.println("ForEach Output:");
+    fruits.stream()
+        .filter(f -> f.startsWith("a"))
+        .forEach(System.out::println);
+
+    // 3. reduce: 문자열 결합
+    String combined = fruits.stream()
+        .reduce("", (a, b) -> a + ", " + b);
+    System.out.println("Reduced String: " + combined);
+
+    // 4. count: 요소 개수
+    long count = fruits.stream()
+        .filter(f -> f.length() > 5)
+        .count();
+    System.out.println("Count (length > 5): " + count);
+
+    // 5. max: 최대값 찾기
+    Optional<String> longest = fruits.stream()
+        .max(Comparator.comparing(String::length));
+    System.out.println("Longest Fruit: " + longest.orElse("None"));
+
+    // 6. anyMatch: 조건 만족 여부
+    boolean hasBerry = fruits.stream()
+        .anyMatch(f -> f.contains("berry"));
+    System.out.println("Has 'berry': " + hasBerry);
+}
+
+public static void parallelStreamExample() {
+    List<Integer> numbers = new ArrayList<>();
+    for (int i = 1; i <= 1000; i++) numbers.add(i);
+
+    // 순차 스트림
+    long startTime = System.currentTimeMillis();
+    long sumSequential = numbers.stream()
+        .map(n -> n * n)
+        .reduce(0, Integer::sum);
+    long endTime = System.currentTimeMillis();
+    System.out.println("Sequential Sum: " + sumSequential + ", Time: " + (endTime - startTime) + "ms");
+
+    // 병렬 스트림
+    startTime = System.currentTimeMillis();
+    long sumParallel = numbers.parallelStream()
+        .map(n -> n * n)
+        .reduce(0, Integer::sum);
+    endTime = System.currentTimeMillis();
+    System.out.println("Parallel Sum: " + sumParallel + ", Time: " + (endTime - startTime) + "ms");
+
+    // 커스텀 ForkJoinPool
+    ForkJoinPool customPool = new ForkJoinPool(2);
+    try {
+        long sumCustom = customPool.submit(() -> numbers.parallelStream()
+            .map(n -> n * n)
+            .reduce(0, Integer::sum)).get();
+        System.out.println("Custom Pool Sum: " + sumCustom);
+    } catch (Exception e) {
+        e.printStackTrace();
+    } finally {
+        customPool.shutdown();
+    }
+}
+
+public static void enhancedStreamExamples() {
+    // 스트림 생성
+    Stream<String> mixedStream = Stream.concat(
+        Stream.of("alpha", "beta"),
+        Arrays.stream(new String[]{"gamma", "delta"})
+    );
+    System.out.println("Mixed Stream:");
+    mixedStream.forEach(System.out::println);
+
+    // 중간 연산 체이닝
+    List<String> words = Arrays.asList("java", "stream", "api", "is", "awesome");
+    List<String> processed = words.stream()
+        .filter(w -> w.length() > 2)
+        .map(String::toUpperCase)
+        .sorted()
+        .collect(Collectors.toList());
+    System.out.println("Processed Words: " + processed);
+
+    // 최종 연산 복합 사용
+    Map<Integer, Long> lengthCount = words.stream()
+        .collect(Collectors.groupingBy(String::length, Collectors.counting()));
+    System.out.println("Length Count: " + lengthCount);
+}
 
 
 class Person {
