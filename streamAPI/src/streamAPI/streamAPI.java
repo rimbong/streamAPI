@@ -458,6 +458,7 @@ public class streamAPI {
     /* 
      * 3. 집계 (Reducing)
      * 컬렉션의 모든 요소를 하나로 결합하는 작업입니다.
+     *  a -> total , b -> next
      */
     public static void listPractice3() {
         List<Integer> numbers = Arrays.asList(1, 2, 3, 4, 5);
