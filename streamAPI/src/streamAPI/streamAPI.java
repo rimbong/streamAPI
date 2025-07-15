@@ -873,8 +873,8 @@ public class streamAPI {
                 .collect(Collectors.toMap(
                         map -> map.get("id"), // 키: id
                         map -> map,           // 값: Map 객체
-                        (existing, replacement) -> existing, // 중복 시 첫 번째 유지
-                        LinkedHashMap::new    // 순서 유지
+                        (existing, replacement) -> existing, // 중복 시 첫 번째 유지, 생략 시 기본값: 키 충돌 시 IllegalStateException 예외 발생
+                        LinkedHashMap::new    // 순서 유지 생략 시 기본값: HashMap 생성.
                 ))
                 .values()
                 .stream()
