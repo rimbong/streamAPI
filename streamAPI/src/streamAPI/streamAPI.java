@@ -162,7 +162,7 @@ import java.util.stream.Stream;
 
 public class streamAPI {
     public static void main(String[] args) {
-        mapPractice4();
+    	ScheduleGroupingExample();
     }
     
     public static void test1() {        
@@ -883,6 +883,80 @@ public class streamAPI {
         // 결과 출력
         System.out.println(distinctList);
     }
+    
+    
+    
+    /* 코드 동작 방식 분석
+
+   1. `Collectors.groupingBy(classifier, downstream)`
+       * `classifier` (첫 번째 인자): 어떤 '키(key)'로 그룹화할지 결정합니다. 여기서는 일정의 startTime을 yy/MM/dd 형식의 문자열로 변환하여 키로 사용하고 있습니다.
+       * `downstream` (두 번째 인자): 같은 키로 그룹화된 값들을 어떻게 처리할지 결정합니다. 질문 주신 내용의 핵심이 바로 이 부분입니다.
+
+   2. `Collectors.mapping(mapper, downstream)`
+       * groupingBy는 기본적으로 같은 키를 가진 항목(여기서는 sch 객체)들을 List에 담습니다. 하지만 mapping을 사용하면 List에 담기 전에 항목을 다른 값으로 '변환'할 수 있습니다.
+       * `mapper`: sch 객체를 개인일정이면 "1", 공유일정이면 "0"으로 변환합니다.
+       * `downstream`: Collectors.toCollection(ArrayList::new)는 이렇게 변환된 "1" 또는 "0" 값들을 담을 그릇(Collection)으로 ArrayList를 사용하라고 지정합니다.
+
+  값이 덮어쓰여지지 않고 누적되는 이유
+
+  groupingBy의 동작 원리는 다음과 같습니다.
+
+   1. 스트림을 순회하며 각 일정(sch)의 그룹 키(yy/MM/dd)를 계산합니다.
+   2. 만약 맵(Map)에 해당 키가 없다면:
+       * Collectors.toCollection(ArrayList::new)를 통해 새로운 `ArrayList`를 생성합니다.
+       * 일정을 "0" 또는 "1"로 변환하여 이 새로운 리스트에 추가합니다.
+       * 맵에 (키, 새로운 리스트) 쌍을 저장합니다.
+   3. 만약 맵에 해당 키가 이미 존재한다면:
+       * 새로운 리스트를 만들지 않고, 기존에 저장된 `ArrayList`를 가져옵니다.
+       * 일정을 "0" 또는 "1"로 변환하여 가져온 리스트에 값을 추가(add)합니다.
+
+  따라서 한 날짜에 개인 일정과 공유 일정이 모두 있다면, 처음 만난 일정 유형에 따라 ArrayList가 생성되어 ["0"]이 담기고, 그다음 일정을 만나면 기존 리스트에 "1"이 추가되어 최종적으로 ["0",
+   "1"]이 되는 것입니다. */
+    
+    public static void ScheduleGroupingExample() {
+    	// 예시 일정 데이터 생성
+        List<Schedule> schList = Arrays.asList(
+            new Schedule("20251105", 1), // 25/11/05, 개인
+            new Schedule("20251105", 0), // 25/11/05, 공유
+            new Schedule("20251106", 1), // 25/11/06, 개인
+            new Schedule("20251107", 0), // 25/11/07, 공유
+            new Schedule("20251105", 1), // 25/11/05, 개인 (추가)
+            new Schedule("20251106", 0)  // 25/11/06, 공유 (추가)
+        );
+
+        // 일정들을 날짜별로 그룹화하고, 개인/공유 여부를 리스트로 수집
+        Map<String, ArrayList<String>> monthScheduleMap = schList.stream().collect(Collectors.groupingBy(
+            sch -> {
+                String t = sch.startTime;
+                if (t == null || t.length() < 8) {
+                    return ""; // 유효하지 않은 시간은 빈 문자열로 처리
+                }
+                // yyyyMMdd -> yy/MM/dd 형식으로 변환
+                String yy = t.substring(2, 4);
+                String mm = t.substring(4, 6);
+                String dd = t.substring(6, 8);
+                return yy + "/" + mm + "/" + dd;
+            },
+            Collectors.mapping(
+                sch -> String.valueOf(sch.isPersonal), // isPersonal 값을 문자열로 변환
+                Collectors.toCollection(ArrayList::new) // 변환된 값들을 ArrayList에 수집
+            )
+        ));
+
+        // 결과 출력
+        System.out.println("월별 일정 맵:");
+        monthScheduleMap.forEach((date, types) -> {
+            System.out.println("날짜: " + date + ", 일정 유형: " + types);
+        });
+
+        /*
+         * 예상 출력:
+         * 월별 일정 맵:
+         * 날짜: 25/11/05, 일정 유형: [1, 0, 1]
+         * 날짜: 25/11/06, 일정 유형: [1, 0]
+         * 날짜: 25/11/07, 일정 유형: [0]
+         */
+    }
 }
 
 
@@ -912,5 +986,25 @@ class Product  {
     }
     public int getAmount() {
         return amount;
+    }
+}
+
+
+// 일정 정보를 담는 간단한 클래스
+class Schedule {
+    String startTime; // yyyyMMdd 형식
+    int isPersonal;   // 1: 개인 일정, 0: 공유 일정
+
+    public Schedule(String startTime, int isPersonal) {
+        this.startTime = startTime;
+        this.isPersonal = isPersonal;
+    }
+
+    @Override
+    public String toString() {
+        return "Schedule{" +
+               "startTime='" + startTime + "'" +
+               ", isPersonal=" + isPersonal +
+               '}';
     }
 }
